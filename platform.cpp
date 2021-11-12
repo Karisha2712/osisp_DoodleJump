@@ -39,3 +39,15 @@ void Platform::update(int i) {
 int Platform::getY() {
     return y;
 }
+
+int Platform::getHeight() {
+    return height;
+}
+
+int Platform::getX() {
+    return x;
+}
+
+int Platform::getWidth() {
+    return width;
+}

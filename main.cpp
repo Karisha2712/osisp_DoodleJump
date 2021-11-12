@@ -96,7 +96,6 @@ LRESULT CALLBACK WndProc(HWND
         case WM_CREATE: {
             doodle = Doodle(hInst);
             SetTimer(hwnd, IDT_TIMER1, INTERVAL, ((TIMERPROC) nullptr));
-            windowRect;
             GetClientRect(hwnd, &windowRect);
             gap = windowRect.bottom / platformsNum;
             makePlatforms(hwnd);
@@ -114,7 +113,7 @@ LRESULT CALLBACK WndProc(HWND
                 platformsNum++;
             }
             int i = 0;
-            for (auto platform: platforms) {
+            for (auto &platform: platforms) {
                 platform.draw(hdc);
                 i++;
             }
@@ -157,7 +156,7 @@ LRESULT CALLBACK WndProc(HWND
         }
             break;
         case WM_TIMER: {
-            int h = doodle.update();
+            int h = doodle.update(platforms);
             for (auto &platform: platforms) {
                 platform.update(h);
             }
@@ -182,7 +181,7 @@ LRESULT CALLBACK WndProc(HWND
 void makePlatforms(HWND hwnd) {
     for (int i = 0; i < platformsNum; i++) {
         int x = dist(rng);
-        int y = windowRect.bottom - gap * (i + 1);
+        int y = windowRect.bottom - gap * (i + 1) + 100;
         platforms.emplace_back(hInst, x, y);
     }
 }

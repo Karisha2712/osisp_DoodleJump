@@ -3,6 +3,10 @@
 
 #include <windows.h>
 #include <winuser.h>
+#include "platform.h"
+#include "vector"
+
+using namespace std;
 
 class Doodle {
 private:
@@ -18,7 +22,7 @@ public:
 
     void draw(HDC hdc);
 
-    int update();
+    int update(const vector<Platform>& platforms);
 
     void increaseX(HWND hwnd);
 

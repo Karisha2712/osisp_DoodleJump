@@ -20,6 +20,11 @@ public:
 
     int getY();
 
+    int getX();
+
+    int getHeight();
+
+    int getWidth();
 };
 
 

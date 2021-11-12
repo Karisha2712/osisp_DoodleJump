@@ -38,8 +38,20 @@ void Doodle::draw(HDC hdc) {
     height = bitmap.bmHeight;
 }
 
-int Doodle::update() {
+int Doodle::update(const vector<Platform> &platforms) {
     velocity += gravity;
+    if (velocity <= -60) {
+        velocity = -60;
+    }
+    for (auto platform: platforms) {
+        if ((y + height >= platform.getY()) && (y + height <= (platform.getY() + platform.getHeight()) + velocity)) {
+            int minX = platform.getX() - width;
+            int maxX = platform.getX() + platform.getWidth() - width / 2;
+            if (x >= minX && x <= maxX) {
+                jump();
+            }
+        }
+    }
     return velocity;
 }
 
