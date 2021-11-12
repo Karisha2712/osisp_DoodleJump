@@ -3,4 +3,4 @@ project(Doodle)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(Doodle WIN32 main.cpp)
+add_executable(Doodle WIN32 main.cpp doodle.cpp doodle.h)

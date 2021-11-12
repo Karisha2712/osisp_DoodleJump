@@ -5,8 +5,11 @@
 #include <windows.h>
 #include <winuser.h>
 #include <chrono>
+#include "doodle.h"
 
 const int START_X = 280, START_Y = 20, HEIGHT = 800, WIDTH = 1000;
+Doodle doodle;
+HINSTANCE hInst;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
@@ -15,6 +18,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
                    LPSTR
                    lpCmdLine,
                    int nCmdShow) {
+    hInst = hInstance;
     WNDCLASSEX wcex{};
     wchar_t CLASS_NAME[] = L"Window";
     wchar_t TITLE[] = L"lab1";
@@ -69,6 +73,18 @@ LRESULT CALLBACK WndProc(HWND
                          wParam,
                          LPARAM lParam) {
     switch (Msg) {
+        case WM_CREATE: {
+            doodle = Doodle(hInst);
+        }
+            break;
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
+            doodle.draw(hdc);
+            EndPaint(hwnd, &ps);
+        }
+            break;
         case WM_DESTROY: {
             PostQuitMessage(0);
         }
