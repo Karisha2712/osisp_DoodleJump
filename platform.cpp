@@ -31,3 +31,7 @@ void Platform::draw(HDC hdc) {
     width = bitmap.bmWidth;
     height = bitmap.bmHeight;
 }
+
+void Platform::update(int i) {
+    y -= i;
+}

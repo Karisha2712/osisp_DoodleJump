@@ -18,7 +18,7 @@ public:
 
     void draw(HDC hdc);
 
-    void update();
+    int update();
 
     void increaseX(HWND hwnd);
 

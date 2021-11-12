@@ -38,9 +38,10 @@ void Doodle::draw(HDC hdc) {
     height = bitmap.bmHeight;
 }
 
-void Doodle::update() {
+int Doodle::update() {
     velocity += gravity;
     y += velocity;
+    return velocity;
 }
 
 void Doodle::jump() {

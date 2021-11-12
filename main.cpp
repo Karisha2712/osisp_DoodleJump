@@ -8,7 +8,11 @@
 #include <windows.h>
 #include <winuser.h>
 #include <chrono>
+#include <random>
 #include "doodle.h"
+#include "platform.h"
+#include "vector"
+#include "wingdi.h"
 
 using namespace std;
 
@@ -16,7 +20,10 @@ const int START_X = 480, START_Y = 20, HEIGHT = 800, WIDTH = 600;
 Doodle doodle;
 HINSTANCE hInst;
 bool isLeftDown = false, isRightDown = false;
+vector<Platform> platforms;
+int platformsNum = 6;
 
+void makePlatforms(HWND hwnd);
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
@@ -83,6 +90,7 @@ LRESULT CALLBACK WndProc(HWND
         case WM_CREATE: {
             doodle = Doodle(hInst);
             SetTimer(hwnd, IDT_TIMER1, INTERVAL, ((TIMERPROC) nullptr));
+            makePlatforms(hwnd);
         }
             break;
         case WM_PAINT: {
@@ -90,6 +98,12 @@ LRESULT CALLBACK WndProc(HWND
             HDC hdc = BeginPaint(hwnd, &ps);
             FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
             doodle.draw(hdc);
+            RECT windowRect;
+            GetClientRect(hwnd, &windowRect);
+            MoveToEx(hdc, 0, windowRect.bottom / 2, nullptr);
+            for (auto platform: platforms) {
+                platform.draw(hdc);
+            }
             EndPaint(hwnd, &ps);
         }
             break;
@@ -127,8 +141,12 @@ LRESULT CALLBACK WndProc(HWND
                 }
             }
         }
+            break;
         case WM_TIMER: {
-            doodle.update();
+            int h = doodle.update();
+            for (auto &platform: platforms) {
+                platform.update(h);
+            }
             if (isRightDown) {
                 doodle.increaseX(hwnd);
             }
@@ -144,5 +162,19 @@ LRESULT CALLBACK WndProc(HWND
             break;
         default:
             return DefWindowProc(hwnd, Msg, wParam, lParam);
+    }
+}
+
+void makePlatforms(HWND hwnd) {
+    RECT windowRect;
+    GetClientRect(hwnd, &windowRect);
+    int gap = windowRect.bottom / platformsNum;
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    uniform_int_distribution<> dist(1, windowRect.right - 120);
+    for (int i = 0; i < platformsNum; i++) {
+        int x = dist(rng);
+        int y = windowRect.bottom - gap * (i + 1);
+        platforms.emplace_back(hInst, x, y);
     }
 }

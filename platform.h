@@ -15,6 +15,9 @@ public:
     Platform(HINSTANCE hInst, int x, int y);
 
     void draw(HDC hdc);
+
+    void update(int i);
+
 };
 
 
