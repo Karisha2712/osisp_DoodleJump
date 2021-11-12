@@ -2,7 +2,7 @@
 #define UNICODE
 #endif
 
-#define INTERVAL 100
+#define INTERVAL 40
 #define IDT_TIMER1 1
 
 #include <windows.h>
@@ -10,7 +10,6 @@
 #include <chrono>
 #include <random>
 #include "doodle.h"
-#include "platform.h"
 #include "vector"
 #include "wingdi.h"
 
@@ -113,8 +112,13 @@ LRESULT CALLBACK WndProc(HWND
                 platformsNum++;
             }
             int i = 0;
+            auto iterator = platforms.cbegin();
             for (auto &platform: platforms) {
-                platform.draw(hdc);
+                if (platform.getY() >= windowRect.bottom + gap * 2) {
+                    platforms.erase(iterator + i);
+                } else {
+                    platform.draw(hdc);
+                }
                 i++;
             }
             EndPaint(hwnd, &ps);

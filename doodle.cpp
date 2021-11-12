@@ -18,8 +18,8 @@ Doodle::Doodle(HINSTANCE hInst) {
     width = 60;
     height = 60;
     velocity = 0;
-    gravity = 10;
-    jumpForce = 90;
+    gravity = 1;
+    jumpForce = 20;
 }
 
 void Doodle::draw(HDC hdc) {
@@ -40,12 +40,12 @@ void Doodle::draw(HDC hdc) {
 
 int Doodle::update(const vector<Platform> &platforms) {
     velocity += gravity;
-    if (velocity <= -60) {
-        velocity = -60;
+    if (velocity <= -20) {
+        velocity = -20;
     }
     for (auto platform: platforms) {
-        if ((y + height >= platform.getY()) && (y + height <= (platform.getY() + platform.getHeight()) + velocity)) {
-            int minX = platform.getX() - width;
+        if ((y + height >= platform.getY()) && (y + height <= (platform.getY() + platform.getHeight()))) {
+            int minX = platform.getX() - width / 2;
             int maxX = platform.getX() + platform.getWidth() - width / 2;
             if (x >= minX && x <= maxX) {
                 jump();
@@ -60,7 +60,7 @@ void Doodle::jump() {
 }
 
 void Doodle::increaseX(HWND hwnd) {
-    x += 30;
+    x += 15;
     RECT windowRect;
     GetClientRect(hwnd, &windowRect);
     if (x >= windowRect.right) {
@@ -69,7 +69,7 @@ void Doodle::increaseX(HWND hwnd) {
 }
 
 void Doodle::decreaseX(HWND hwnd) {
-    x -= 30;
+    x -= 15;
     RECT windowRect;
     GetClientRect(hwnd, &windowRect);
     if (x <= windowRect.left - width) {
