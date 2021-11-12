@@ -10,6 +10,7 @@ private:
     int x, y;
     int height, width;
     int velocity{}, gravity{};
+    int jumpForce;
 public:
     Doodle();
 
@@ -18,6 +19,12 @@ public:
     void draw(HDC hdc);
 
     void update();
+
+    void increaseX(HWND hwnd);
+
+    void decreaseX(HWND hwnd);
+
+    void jump();
 };
 
 

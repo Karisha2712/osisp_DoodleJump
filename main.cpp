@@ -2,14 +2,21 @@
 #define UNICODE
 #endif
 
+#define INTERVAL 100
+#define IDT_TIMER1 1
+
 #include <windows.h>
 #include <winuser.h>
 #include <chrono>
 #include "doodle.h"
 
-const int START_X = 280, START_Y = 20, HEIGHT = 800, WIDTH = 1000;
+using namespace std;
+
+const int START_X = 480, START_Y = 20, HEIGHT = 800, WIDTH = 600;
 Doodle doodle;
 HINSTANCE hInst;
+bool isLeftDown = false, isRightDown = false;
+
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
@@ -75,6 +82,7 @@ LRESULT CALLBACK WndProc(HWND
     switch (Msg) {
         case WM_CREATE: {
             doodle = Doodle(hInst);
+            SetTimer(hwnd, IDT_TIMER1, INTERVAL, ((TIMERPROC) nullptr));
         }
             break;
         case WM_PAINT: {
@@ -83,6 +91,51 @@ LRESULT CALLBACK WndProc(HWND
             FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
             doodle.draw(hdc);
             EndPaint(hwnd, &ps);
+        }
+            break;
+        case WM_KEYDOWN: {
+            switch (wParam) {
+                case VK_UP: {
+                    doodle.jump();
+                }
+                    break;
+                case VK_RIGHT: {
+                    isRightDown = true;
+                }
+                    break;
+                case VK_LEFT: {
+                    isLeftDown = true;
+                }
+                    break;
+                default: {
+                }
+            }
+            InvalidateRect(hwnd, nullptr, true);
+        }
+            break;
+        case WM_KEYUP: {
+            switch (wParam) {
+                case VK_RIGHT: {
+                    isRightDown = false;
+                }
+                    break;
+                case VK_LEFT: {
+                    isLeftDown = false;
+                }
+                    break;
+                default: {
+                }
+            }
+        }
+        case WM_TIMER: {
+            doodle.update();
+            if (isRightDown) {
+                doodle.increaseX(hwnd);
+            }
+            if (isLeftDown) {
+                doodle.decreaseX(hwnd);
+            }
+            InvalidateRect(hwnd, nullptr, true);
         }
             break;
         case WM_DESTROY: {
