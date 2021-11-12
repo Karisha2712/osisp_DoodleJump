@@ -35,3 +35,7 @@ void Platform::draw(HDC hdc) {
 void Platform::update(int i) {
     y -= i;
 }
+
+int Platform::getY() {
+    return y;
+}

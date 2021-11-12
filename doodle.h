@@ -25,6 +25,8 @@ public:
     void decreaseX(HWND hwnd);
 
     void jump();
+
+    int getY();
 };
 
 

@@ -22,6 +22,11 @@ HINSTANCE hInst;
 bool isLeftDown = false, isRightDown = false;
 vector<Platform> platforms;
 int platformsNum = 6;
+std::random_device dev;
+std::mt19937 rng(dev());
+uniform_int_distribution<> dist(1, 480);
+int gap;
+RECT windowRect;
 
 void makePlatforms(HWND hwnd);
 
@@ -60,6 +65,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
             nullptr
     );
 
+
     if (!hWnd) {
         MessageBox(nullptr,
                    L"Call to CreateWindow failed!",
@@ -90,6 +96,9 @@ LRESULT CALLBACK WndProc(HWND
         case WM_CREATE: {
             doodle = Doodle(hInst);
             SetTimer(hwnd, IDT_TIMER1, INTERVAL, ((TIMERPROC) nullptr));
+            windowRect;
+            GetClientRect(hwnd, &windowRect);
+            gap = windowRect.bottom / platformsNum;
             makePlatforms(hwnd);
         }
             break;
@@ -98,11 +107,16 @@ LRESULT CALLBACK WndProc(HWND
             HDC hdc = BeginPaint(hwnd, &ps);
             FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
             doodle.draw(hdc);
-            RECT windowRect;
-            GetClientRect(hwnd, &windowRect);
-            MoveToEx(hdc, 0, windowRect.bottom / 2, nullptr);
+            if ((doodle.getY() > platforms.back().getY() + gap) && (platformsNum < 240)) {
+                int x = dist(rng);
+                int y = platforms.back().getY() - gap;
+                platforms.emplace_back(hInst, x, y);
+                platformsNum++;
+            }
+            int i = 0;
             for (auto platform: platforms) {
                 platform.draw(hdc);
+                i++;
             }
             EndPaint(hwnd, &ps);
         }
@@ -166,15 +180,10 @@ LRESULT CALLBACK WndProc(HWND
 }
 
 void makePlatforms(HWND hwnd) {
-    RECT windowRect;
-    GetClientRect(hwnd, &windowRect);
-    int gap = windowRect.bottom / platformsNum;
-    std::random_device dev;
-    std::mt19937 rng(dev());
-    uniform_int_distribution<> dist(1, windowRect.right - 120);
     for (int i = 0; i < platformsNum; i++) {
         int x = dist(rng);
         int y = windowRect.bottom - gap * (i + 1);
         platforms.emplace_back(hInst, x, y);
     }
 }
+
