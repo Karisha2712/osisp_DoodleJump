@@ -25,9 +25,25 @@ std::random_device dev;
 std::mt19937 rng(dev());
 uniform_int_distribution<> dist(1, 480);
 int gap;
+int score = 0;
+bool isGameStarted;
 RECT windowRect;
+HBITMAP gameOverBmp;
+wchar_t text[20];
+
+void drawScore(HDC hdc);
+
+void drawEndScore(HDC hdc);
 
 void makePlatforms(HWND hwnd);
+
+void generateNewPlatforms();
+
+void drawPlatforms(HDC hdc);
+
+bool checkIfGameOver();
+
+void showBmp(HDC hdc, HBITMAP bmp, int x, int y);
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
@@ -98,6 +114,9 @@ LRESULT CALLBACK WndProc(HWND
             GetClientRect(hwnd, &windowRect);
             gap = windowRect.bottom / platformsNum;
             makePlatforms(hwnd);
+            gameOverBmp = HBITMAP(
+                    LoadImageW(hInst, L"../images/game-over-red.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE));
+
         }
             break;
         case WM_PAINT: {
@@ -105,25 +124,23 @@ LRESULT CALLBACK WndProc(HWND
             HDC hdc = BeginPaint(hwnd, &ps);
             FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
             doodle.draw(hdc);
-            if ((doodle.getY() > platforms.back().getY() + gap) && (platformsNum < 240)) {
-                int x = dist(rng);
-                int y = platforms.back().getY() - gap;
-                platforms.emplace_back(hInst, x, y);
-                platformsNum++;
-            }
-            int i = 0;
-            auto iterator = platforms.cbegin();
-            for (auto &platform: platforms) {
-                if (platform.getY() >= windowRect.bottom + gap * 2) {
-                    platforms.erase(iterator + i);
-                } else {
-                    platform.draw(hdc);
-                }
-                i++;
+            if (!checkIfGameOver()) {
+                generateNewPlatforms();
+                drawPlatforms(hdc);
+                drawScore(hdc);
+            } else {
+                KillTimer(hwnd, IDT_TIMER1);
+                int x = (windowRect.right / 2) - 170;
+                int y = doodle.getY() - 120;
+                showBmp(hdc, gameOverBmp, x, y);
+                drawEndScore(hdc);
             }
             EndPaint(hwnd, &ps);
         }
             break;
+        case WM_ERASEBKGND: {
+            return (LRESULT) 1;
+        }
         case WM_KEYDOWN: {
             switch (wParam) {
                 case VK_UP: {
@@ -190,3 +207,74 @@ void makePlatforms(HWND hwnd) {
     }
 }
 
+void generateNewPlatforms() {
+    if ((doodle.getY() > platforms.back().getY() + gap) && (platformsNum < 240)) {
+        int x = dist(rng);
+        int y = platforms.back().getY() - gap;
+        platforms.emplace_back(hInst, x, y);
+        platformsNum++;
+    }
+}
+
+void drawPlatforms(HDC hdc) {
+    int i = 0;
+    auto iterator = platforms.cbegin();
+    for (auto &platform: platforms) {
+        if (platform.getY() >= windowRect.bottom + gap * 2) {
+            platforms.erase(iterator + i);
+            score++;
+        } else {
+            platform.draw(hdc);
+        }
+        i++;
+    }
+}
+
+void drawScore(HDC hdc) {
+    swprintf_s(text, L"%d", score * 13);
+    RECT cell;
+    cell.left = 10;
+    cell.right = 40;
+    cell.top = 10;
+    cell.bottom = 40;
+    DrawText(hdc, text, -1, &cell, DT_CENTER);
+}
+
+void drawEndScore(HDC hdc) {
+    swprintf_s(text, L"%d", score * 13);
+    RECT cell;
+    cell.left = windowRect.right / 2 + 10;
+    cell.right = windowRect.right / 2 + 40;
+    cell.top = doodle.getY() + 100;
+    cell.bottom = doodle.getY() + 130;
+    DrawText(hdc, text, -1, &cell, DT_CENTER);
+    wchar_t TEXT[] = L"Your score: ";
+    cell.left = windowRect.right / 2 - 70;
+    cell.right = windowRect.right / 2 + 10;
+    cell.top = doodle.getY() + 100;
+    cell.bottom = doodle.getY() + 130;
+    DrawText(hdc, TEXT, -1, &cell, DT_CENTER);
+}
+
+bool checkIfGameOver() {
+    for (auto &platform: platforms) {
+        if (platform.getY() > doodle.getY()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void showBmp(HDC hdc, HBITMAP bmp, int x, int y) {
+    HDC hdcMem;
+    BITMAP bitmap;
+    HGDIOBJ oldBitmap;
+    hdcMem = CreateCompatibleDC(hdc);
+    oldBitmap = SelectObject(hdcMem, bmp);
+    GetObject(bmp, sizeof(BITMAP), &bitmap);
+    StretchBlt(hdc, x, y, bitmap.bmWidth, bitmap.bmHeight, hdcMem, 0, 0, bitmap.bmWidth,
+               bitmap.bmHeight, SRCCOPY);
+
+    SelectObject(hdcMem, oldBitmap);
+    DeleteDC(hdcMem);
+};
