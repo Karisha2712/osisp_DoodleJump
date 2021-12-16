@@ -134,27 +134,44 @@ LRESULT CALLBACK WndProc(HWND
             break;
         case WM_PAINT: {
             PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hwnd, &ps);
-            FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
-            doodle.draw(hdc);
+            BeginPaint(hwnd, &ps);
+            RECT clientRect;
+            GetClientRect(hwnd, &clientRect);
+
+            HDC hBufferDC = CreateCompatibleDC(ps.hdc);
+            HBITMAP hBufferBitmap = CreateCompatibleBitmap(ps.hdc, clientRect.right, clientRect.bottom);
+            HGDIOBJ hOldBufferBitmap = SelectObject(hBufferDC, hBufferBitmap);
+
+            FillRect(hBufferDC, &clientRect, (HBRUSH) (COLOR_WINDOW + 1));
+
+
+            doodle.draw(hBufferDC);
             if (!isGameStarted) {
                 mouse_x = (windowRect.right / 2) - 100;
                 mouse_y = doodle.getY() + 180;
-                showBmp(hdc, playButton, mouse_x, mouse_y);
+                showBmp(hBufferDC, playButton, mouse_x, mouse_y);
             } else {
                 if (!checkIfGameOver()) {
                     generateNewPlatforms();
-                    drawPlatforms(hdc);
-                    drawScore(hdc);
+                    drawPlatforms(hBufferDC);
+                    drawScore(hBufferDC);
                 } else {
                     isGameStarted = false;
                     int x = (windowRect.right / 2) - 170;
                     int y = doodle.getY() - 120;
-                    showBmp(hdc, gameOverBmp, x, y);
-                    showBmp(hdc, playButton, mouse_x, mouse_y);
-                    drawEndScore(hdc);
+                    showBmp(hBufferDC, gameOverBmp, x, y);
+                    showBmp(hBufferDC, playButton, mouse_x, mouse_y);
+                    drawEndScore(hBufferDC);
                 }
             }
+
+            BitBlt(ps.hdc, 0, 0, clientRect.right, clientRect.bottom, hBufferDC, 0, 0, SRCCOPY);
+
+            SelectObject(hBufferDC, hOldBufferBitmap);
+            DeleteObject(hBufferDC);
+            DeleteObject(hBufferBitmap);
+
+
             EndPaint(hwnd, &ps);
         }
             break;
