@@ -7,11 +7,13 @@
 
 #include <windows.h>
 #include <winuser.h>
+#include <windowsx.h>
 #include <chrono>
 #include <random>
 #include "doodle.h"
 #include "vector"
 #include "wingdi.h"
+#include "Intsafe.h"
 
 using namespace std;
 
@@ -26,10 +28,16 @@ std::mt19937 rng(dev());
 uniform_int_distribution<> dist(1, 480);
 int gap;
 int score = 0;
-bool isGameStarted;
+bool isGameStarted = false;
 RECT windowRect;
-HBITMAP gameOverBmp;
+int mouse_x, mouse_y;
+int maxScore = 0;
+HBITMAP gameOverBmp, playButton;
 wchar_t text[20];
+wchar_t text2[20];
+wchar_t szCounterFileName[] = L"score.txt";
+
+void WriteMaxScore();
 
 void drawScore(HDC hdc);
 
@@ -43,6 +51,8 @@ void drawPlatforms(HDC hdc);
 
 bool checkIfGameOver();
 
+DWORD ReadCounter();
+
 void showBmp(HDC hdc, HBITMAP bmp, int x, int y);
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
@@ -55,7 +65,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     hInst = hInstance;
     WNDCLASSEX wcex{};
     wchar_t CLASS_NAME[] = L"Window";
-    wchar_t TITLE[] = L"lab1";
+    wchar_t TITLE[] = L"Doodle Jump";
 
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.lpfnWndProc = WndProc;
@@ -109,13 +119,16 @@ LRESULT CALLBACK WndProc(HWND
                          LPARAM lParam) {
     switch (Msg) {
         case WM_CREATE: {
+            DWORD mScore = ReadCounter();
+            DWordToInt(mScore, &maxScore);
             doodle = Doodle(hInst);
             SetTimer(hwnd, IDT_TIMER1, INTERVAL, ((TIMERPROC) nullptr));
             GetClientRect(hwnd, &windowRect);
             gap = windowRect.bottom / platformsNum;
-            makePlatforms(hwnd);
             gameOverBmp = HBITMAP(
                     LoadImageW(hInst, L"../images/game-over-red.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE));
+            playButton = HBITMAP(
+                    LoadImageW(hInst, L"../images/play-btn.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE));
 
         }
             break;
@@ -124,73 +137,116 @@ LRESULT CALLBACK WndProc(HWND
             HDC hdc = BeginPaint(hwnd, &ps);
             FillRect(hdc, &ps.rcPaint, (HBRUSH) (COLOR_WINDOW + 1));
             doodle.draw(hdc);
-            if (!checkIfGameOver()) {
-                generateNewPlatforms();
-                drawPlatforms(hdc);
-                drawScore(hdc);
+            if (!isGameStarted) {
+                mouse_x = (windowRect.right / 2) - 100;
+                mouse_y = doodle.getY() + 180;
+                showBmp(hdc, playButton, mouse_x, mouse_y);
             } else {
-                KillTimer(hwnd, IDT_TIMER1);
-                int x = (windowRect.right / 2) - 170;
-                int y = doodle.getY() - 120;
-                showBmp(hdc, gameOverBmp, x, y);
-                drawEndScore(hdc);
+                if (!checkIfGameOver()) {
+                    generateNewPlatforms();
+                    drawPlatforms(hdc);
+                    drawScore(hdc);
+                } else {
+                    isGameStarted = false;
+                    int x = (windowRect.right / 2) - 170;
+                    int y = doodle.getY() - 120;
+                    showBmp(hdc, gameOverBmp, x, y);
+                    showBmp(hdc, playButton, mouse_x, mouse_y);
+                    drawEndScore(hdc);
+                }
             }
             EndPaint(hwnd, &ps);
+        }
+            break;
+        case WM_LBUTTONDOWN: {
+            if (!isGameStarted) {
+                if (wParam == MK_LBUTTON) {
+                    int x = GET_X_LPARAM(lParam);
+                    int y = GET_Y_LPARAM(lParam);
+                    if ((x >= mouse_x) && (x <= mouse_x + 198) && (y >= mouse_y) && (y <= mouse_y + 76)) {
+                        isGameStarted = true;
+                        score = 0;
+                        makePlatforms(hwnd);
+                        InvalidateRect(hwnd, nullptr, true);
+                    }
+                }
+            }
+        }
+            break;
+        case WM_MOUSEACTIVATE: {
+            if (!isGameStarted) {
+                if (wParam == MK_LBUTTON) {
+                    int x = GET_X_LPARAM(lParam);
+                    int y = GET_Y_LPARAM(lParam);
+                    if ((x >= mouse_x) && (x <= mouse_x + 198) && (y >= mouse_y) && (y <= mouse_y + 76)) {
+                        SetCursor(LoadCursorA(nullptr, reinterpret_cast<LPCSTR>(IDC_HAND)));
+                    }
+                }
+            }
         }
             break;
         case WM_ERASEBKGND: {
             return (LRESULT) 1;
         }
         case WM_KEYDOWN: {
-            switch (wParam) {
-                case VK_UP: {
-                    doodle.jump();
+            if (isGameStarted) {
+                switch (wParam) {
+                    case VK_UP: {
+                        doodle.jump();
+                    }
+                        break;
+                    case VK_RIGHT: {
+                        isRightDown = true;
+                    }
+                        break;
+                    case VK_LEFT: {
+                        isLeftDown = true;
+                    }
+                        break;
+                    default: {
+                    }
                 }
-                    break;
-                case VK_RIGHT: {
-                    isRightDown = true;
-                }
-                    break;
-                case VK_LEFT: {
-                    isLeftDown = true;
-                }
-                    break;
-                default: {
-                }
+                InvalidateRect(hwnd, nullptr, true);
             }
-            InvalidateRect(hwnd, nullptr, true);
+
         }
             break;
         case WM_KEYUP: {
-            switch (wParam) {
-                case VK_RIGHT: {
-                    isRightDown = false;
-                }
-                    break;
-                case VK_LEFT: {
-                    isLeftDown = false;
-                }
-                    break;
-                default: {
+            if (isGameStarted) {
+                switch (wParam) {
+                    case VK_RIGHT: {
+                        isRightDown = false;
+                    }
+                        break;
+                    case VK_LEFT: {
+                        isLeftDown = false;
+                    }
+                        break;
+                    default: {
+                    }
                 }
             }
         }
             break;
         case WM_TIMER: {
-            int h = doodle.update(platforms);
-            for (auto &platform: platforms) {
-                platform.update(h);
+            if (isGameStarted) {
+                int h = doodle.update(platforms);
+                for (auto &platform: platforms) {
+                    platform.update(h);
+                }
+                if (isRightDown) {
+                    doodle.increaseX(hwnd);
+                }
+                if (isLeftDown) {
+                    doodle.decreaseX(hwnd);
+                }
+                InvalidateRect(hwnd, nullptr, true);
             }
-            if (isRightDown) {
-                doodle.increaseX(hwnd);
-            }
-            if (isLeftDown) {
-                doodle.decreaseX(hwnd);
-            }
-            InvalidateRect(hwnd, nullptr, true);
         }
             break;
         case WM_DESTROY: {
+            WriteMaxScore();
+            KillTimer(hwnd, IDT_TIMER1);
             PostQuitMessage(0);
         }
             break;
@@ -200,6 +256,8 @@ LRESULT CALLBACK WndProc(HWND
 }
 
 void makePlatforms(HWND hwnd) {
+    platformsNum = 6;
+    platforms.clear();
     for (int i = 0; i < platformsNum; i++) {
         int x = dist(rng);
         int y = windowRect.bottom - gap * (i + 1) + 100;
@@ -241,19 +299,37 @@ void drawScore(HDC hdc) {
 }
 
 void drawEndScore(HDC hdc) {
+    if (maxScore < score) {
+        maxScore = score;
+    }
     swprintf_s(text, L"%d", score * 13);
     RECT cell;
     cell.left = windowRect.right / 2 + 10;
     cell.right = windowRect.right / 2 + 40;
     cell.top = doodle.getY() + 100;
-    cell.bottom = doodle.getY() + 130;
+    cell.bottom = doodle.getY() + 200;
     DrawText(hdc, text, -1, &cell, DT_CENTER);
+
+    swprintf_s(text2, L"%d", maxScore * 13);
+    cell.left = windowRect.right / 2 + 10;
+    cell.right = windowRect.right / 2 + 40;
+    cell.top = doodle.getY() + 120;
+    cell.bottom = doodle.getY() + 140;
+    DrawText(hdc, text2, -1, &cell, DT_CENTER);
+
     wchar_t TEXT[] = L"Your score: ";
     cell.left = windowRect.right / 2 - 70;
     cell.right = windowRect.right / 2 + 10;
     cell.top = doodle.getY() + 100;
-    cell.bottom = doodle.getY() + 130;
+    cell.bottom = doodle.getY() + 200;
     DrawText(hdc, TEXT, -1, &cell, DT_CENTER);
+
+    wchar_t TEXT2[] = L"Max score: ";
+    cell.left = windowRect.right / 2 - 70;
+    cell.right = windowRect.right / 2 + 10;
+    cell.top = doodle.getY() + 120;
+    cell.bottom = doodle.getY() + 140;
+    DrawText(hdc, TEXT2, -1, &cell, DT_CENTER);
 }
 
 bool checkIfGameOver() {
@@ -277,4 +353,33 @@ void showBmp(HDC hdc, HBITMAP bmp, int x, int y) {
 
     SelectObject(hdcMem, oldBitmap);
     DeleteDC(hdcMem);
-};
+}
+
+void WriteMaxScore() {
+    DWORD dwCounter;
+    IntToDWord(maxScore, &dwCounter);
+    DWORD dwTemp;
+    HANDLE hFile = CreateFile(szCounterFileName, GENERIC_WRITE, 0, nullptr,
+                              CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (INVALID_HANDLE_VALUE == hFile) {
+        return;
+    }
+    WriteFile(hFile, &dwCounter, sizeof(dwCounter), &dwTemp, nullptr);
+    CloseHandle(hFile);
+}
+
+DWORD ReadCounter() {
+    DWORD dwCounter, dwTemp;
+    HANDLE hFile = CreateFile(szCounterFileName, GENERIC_READ, 0, nullptr,
+                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (INVALID_HANDLE_VALUE == hFile) {
+        return 1;
+    }
+    ReadFile(hFile, &dwCounter, sizeof(dwCounter), &dwTemp, nullptr);
+    if (sizeof(dwCounter) != dwTemp) {
+        CloseHandle(hFile);
+        return 1;
+    }
+    CloseHandle(hFile);
+    return dwCounter;
+}
