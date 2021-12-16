@@ -252,9 +252,11 @@ LRESULT CALLBACK WndProc(HWND
                     platform.update(h);
                 }
                 if (isRightDown) {
+                    doodle.turnLeft(hInst, false);
                     doodle.increaseX(hwnd);
                 }
                 if (isLeftDown) {
+                    doodle.turnLeft(hInst, true);
                     doodle.decreaseX(hwnd);
                 }
                 InvalidateRect(hwnd, nullptr, true);

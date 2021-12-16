@@ -81,5 +81,13 @@ int Doodle::getY() {
     return y;
 }
 
+void Doodle::turnLeft(HINSTANCE hInst, bool isLeft) {
+    if (isLeft) {
+        picture = HBITMAP(LoadImageW(hInst, L"../images/doodler-left.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE));
+    } else {
+        picture = HBITMAP(LoadImageW(hInst, L"../images/doodler-right.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE));
+    }
+}
+
 
 

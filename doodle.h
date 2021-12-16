@@ -31,6 +31,8 @@ public:
     void jump();
 
     int getY();
+
+    void turnLeft(HINSTANCE hInst, bool isLeft);
 };
 
 
